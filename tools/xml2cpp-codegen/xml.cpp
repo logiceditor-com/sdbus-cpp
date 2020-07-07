@@ -4,6 +4,7 @@
 
 #include "xml.h"
 
+#include <algorithm>
 #include <expat.h>
 
 using namespace sdbuscpp::xml;
@@ -71,10 +72,11 @@ Nodes Nodes::select(const std::string& attr, const std::string& value) const
     return result;
 }
 
-Nodes Node::operator[](const std::string& key)
+Nodes Node::operator[](const std::string& key) const
 {
-    Nodes result;
+    Nodes result{};
 
+    /*
     if (key.length() == 0)
     {
         return result;
@@ -82,11 +84,13 @@ Nodes Node::operator[](const std::string& key)
 
     for (auto it = children.begin(), itEnd = children.end(); it != itEnd; ++it)
     {
-        if (it->name == key)
+        if ((*it)->name == key)
         {
-            result.push_back(&(*it));
+            result.push_back(it->clone());
         }
-    }
+    } */
+
+    std::copy_if(children.begin(), children.end(), std::back_inserter(result), [&key] (const std::shared_ptr<Node>& it) { return it->name == key; });
     return result;
 }
 
@@ -153,7 +157,7 @@ void Node::_raw_xml(std::string& xml, int& depth) const
 
             for (auto it = children.begin(), itEnd = children.end(); it != itEnd; ++it)
             {
-                it->_raw_xml(xml, depth);
+                (*it)->_raw_xml(xml, depth);
             }
 
             --depth;
@@ -179,7 +183,6 @@ Document::Document(const std::string &xml) :
 
 Document::~Document()
 {
-    delete root;
 }
 
 struct Document::Expat
@@ -196,10 +199,6 @@ struct Document::Expat
 void Document::from_xml(const std::string& xml)
 {
     m_depth = 0;
-    if (root)
-    {
-        delete root;
-    }
     root = nullptr;
 
     XML_Parser parser = XML_ParserCreate("UTF-8");
@@ -265,7 +264,7 @@ void Document::Expat::start_element_handler(void* data, const XML_Char* name, co
 
     if (!doc->root)
     {
-        doc->root = new Node(name, atts);
+        doc->root = std::make_shared<Node>(name, atts);
     }
     else
     {
@@ -273,9 +272,9 @@ void Document::Expat::start_element_handler(void* data, const XML_Char* name, co
 
         for (int i = 1; i < doc->m_depth; ++i)
         {
-            cld = &(cld->back().children);
+            cld = &(cld->back()->children);
         }
-        cld->push_back(Node(name, atts));
+        cld->push_back(std::make_shared<Node>(name, atts));
 
     }
     doc->m_depth++;
@@ -285,11 +284,11 @@ void Document::Expat::character_data_handler(void* data, const XML_Char* chars, 
 {
     Document* doc = static_cast<Document*>(data);
 
-    Node* nod = doc->root;
+    std::shared_ptr<Node> nod = doc->root;
 
     for (int i = 1; i < doc->m_depth; ++i)
     {
-        nod = &(nod->children.back());
+        nod = nod->children.back();
     }
 
     int x = 0, y = len - 1;

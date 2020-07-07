@@ -36,7 +36,7 @@ private:
 
 class Node;
 
-class Nodes : public std::vector<Node *>
+class Nodes : public std::vector<std::shared_ptr<Node>>
 {
 public:
     Nodes operator[](const std::string &key) const;
@@ -48,7 +48,7 @@ class Node
 public:
 
         using Attributes = std::map<std::string, std::string>;
-        using Children = std::vector<Node>;
+        using Children = std::vector<std::shared_ptr<Node>>;
 
         std::string name;
         std::string cdata;
@@ -61,7 +61,7 @@ public:
 
         Node(const char* n, const char** a = nullptr);
 
-        Nodes operator[](const std::string& key);
+        Nodes operator[](const std::string& key) const;
 
         std::string get(const std::string& attribute) const;
 
@@ -69,11 +69,13 @@ public:
 
         std::string to_xml() const;
 
-        Node& add(Node child)
+        // Never used
+        void add(std::shared_ptr<Node> child)
         {
             children.push_back(child);
-            return children.back();
         }
+
+        Node& operator=(const Node& other)  = default;
 
 private:
 
@@ -87,7 +89,7 @@ class Document
 public:
         struct Expat;
 
-        Node* root;
+        std::shared_ptr<Node> root;
 
         Document();
         ~Document();
