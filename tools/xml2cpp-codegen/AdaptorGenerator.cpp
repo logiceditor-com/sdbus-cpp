@@ -209,8 +209,6 @@ std::tuple<std::string, std::string> AdaptorGenerator::processMethods(const Node
         std::tie(argStr, argTypeStr, std::ignore, argStringsStr) = argsToNamesAndTypes(inArgs, async);
         std::tie(std::ignore, std::ignore, std::ignore, outArgStringsStr) = argsToNamesAndTypes(outArgs);
 
-        using namespace std::string_literals;
-
         registrationSS << tab << tab << "object_.registerMethod(\""
                 << methodName << "\")"
                 << ".onInterface(INTERFACE_NAME)"
@@ -221,7 +219,7 @@ std::tuple<std::string, std::string> AdaptorGenerator::processMethods(const Node
                 << (async ? "sdbus::Result<" + outArgsToType(outArgs, true) + ">&& result" + (argTypeStr.empty() ? "" : ", ") : "")
                 << argTypeStr
                 << "){ " << (async ? "" : "return ") << "this->" << methodNameSafe << "("
-                << (async ? "std::move(result)"s + (argTypeStr.empty() ? "" : ", ") : "")
+                << (async ? std::string("std::move(result)") + (argTypeStr.empty() ? "" : ", ") : "")
                 << argStr << "); })"
                 << annotationRegistration << ";" << endl;
 
